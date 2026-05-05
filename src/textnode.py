@@ -14,7 +14,6 @@ class TextType(Enum):
 
 
 class TextTypeToMd(Enum):
-    TEXT = ""
     BOLD = "**"
     ITALIC = "_"
     CODE = "`"
