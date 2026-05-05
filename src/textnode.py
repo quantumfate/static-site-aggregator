@@ -13,6 +13,13 @@ class TextType(Enum):
     IMAGE = "image"
 
 
+class TextTypeToMd(Enum):
+    TEXT = ""
+    BOLD = "**"
+    ITALIC = "_"
+    CODE = "`"
+
+
 def text_node_to_html_node(text_node: TextNode) -> HTMLNode:
 
     if text_node.text_type not in TextType:
