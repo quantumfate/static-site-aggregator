@@ -1,7 +1,7 @@
 from markdown_convert import (
     split_nodes_delimiter,
-    extract_markdown_images,
-    extract_markdown_links,
+    match_links,
+    match_images,
     split_nodes_image,
     split_nodes_link,
     text_to_textnodes,
@@ -196,88 +196,88 @@ class TestSplitNodesDelimiter(unittest.TestCase):
         self.assertEqual(result, [link])
 
 
+def _pairs(matches):
+    return [(m.group(1), m.group(2)) for m in matches]
+
+
 class TestExtractMarkdownImages(unittest.TestCase):
     def test_single_image(self):
         self.assertEqual(
-            extract_markdown_images("![alt](https://example.com/img.png)"),
+            _pairs(match_images("![alt](https://example.com/img.png)")),
             [("alt", "https://example.com/img.png")],
         )
 
     def test_multiple_images(self):
         text = "![one](https://a.com/1.png) and ![two](https://b.com/2.jpg)"
         self.assertEqual(
-            extract_markdown_images(text),
+            _pairs(match_images(text)),
             [("one", "https://a.com/1.png"), ("two", "https://b.com/2.jpg")],
         )
 
     def test_image_in_middle_of_text(self):
         self.assertEqual(
-            extract_markdown_images("before ![alt](url) after"),
+            _pairs(match_images("before ![alt](url) after")),
             [("alt", "url")],
         )
 
     def test_empty_alt(self):
         self.assertEqual(
-            extract_markdown_images("![](https://example.com/x.png)"),
+            _pairs(match_images("![](https://example.com/x.png)")),
             [("", "https://example.com/x.png")],
         )
 
     def test_empty_url(self):
-        self.assertEqual(extract_markdown_images("![alt]()"), [("alt", "")])
+        self.assertEqual(_pairs(match_images("![alt]()")), [("alt", "")])
 
     def test_no_images(self):
-        self.assertEqual(extract_markdown_images("plain text no images"), [])
+        self.assertEqual(_pairs(match_images("plain text no images")), [])
 
     def test_link_not_matched_as_image(self):
-        self.assertEqual(extract_markdown_images("[link](https://example.com)"), [])
+        self.assertEqual(_pairs(match_images("[link](https://example.com)")), [])
 
     def test_mixed_image_and_link(self):
         text = "![img](https://a.com/i.png) and [link](https://b.com)"
-        self.assertEqual(
-            extract_markdown_images(text), [("img", "https://a.com/i.png")]
-        )
+        self.assertEqual(_pairs(match_images(text)), [("img", "https://a.com/i.png")])
 
 
 class TestExtractMarkdownLinks(unittest.TestCase):
     def test_single_link(self):
         self.assertEqual(
-            extract_markdown_links("[click](https://example.com)"),
+            _pairs(match_links("[click](https://example.com)")),
             [("click", "https://example.com")],
         )
 
     def test_multiple_links(self):
         text = "[one](https://a.com) and [two](https://b.com)"
         self.assertEqual(
-            extract_markdown_links(text),
+            _pairs(match_links(text)),
             [("one", "https://a.com"), ("two", "https://b.com")],
         )
 
     def test_link_in_middle_of_text(self):
         self.assertEqual(
-            extract_markdown_links("before [text](url) after"),
+            _pairs(match_links("before [text](url) after")),
             [("text", "url")],
         )
 
     def test_empty_anchor(self):
         self.assertEqual(
-            extract_markdown_links("[](https://example.com)"),
+            _pairs(match_links("[](https://example.com)")),
             [("", "https://example.com")],
         )
 
     def test_empty_url(self):
-        self.assertEqual(extract_markdown_links("[anchor]()"), [("anchor", "")])
+        self.assertEqual(_pairs(match_links("[anchor]()")), [("anchor", "")])
 
     def test_no_links(self):
-        self.assertEqual(extract_markdown_links("plain text no links"), [])
+        self.assertEqual(_pairs(match_links("plain text no links")), [])
 
     def test_image_not_matched_as_link(self):
-        self.assertEqual(
-            extract_markdown_links("![img](https://example.com/x.png)"), []
-        )
+        self.assertEqual(_pairs(match_links("![img](https://example.com/x.png)")), [])
 
     def test_mixed_image_and_link(self):
         text = "![img](https://a.com/i.png) and [link](https://b.com)"
-        self.assertEqual(extract_markdown_links(text), [("link", "https://b.com")])
+        self.assertEqual(_pairs(match_links(text)), [("link", "https://b.com")])
 
 
 class TestSplitNodesMedia(unittest.TestCase):

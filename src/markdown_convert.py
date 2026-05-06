@@ -1,15 +1,16 @@
-from typing import Callable
+from typing import Callable, Iterator
+from collections.abc import Iterator
 from htmlnode import HTMLNode
 from textnode import TextNode, TextType, TextTypeToMd
 import re
 
 
-def extract_markdown_images(text: str) -> list[tuple[str, str]]:
-    return re.findall(r"!\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
+def match_images(text: str) -> Iterator[re.Match[str]]:
+    return re.compile(r"!\[([^\[\]]*)\]\(([^\(\)]*)\)").finditer(text)
 
 
-def extract_markdown_links(text: str) -> list[tuple[str, str]]:
-    return re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
+def match_links(text: str) -> Iterator[re.Match[str]]:
+    return re.compile(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)").finditer(text)
 
 
 def split_nodes_delimiter(
@@ -40,48 +41,35 @@ def split_nodes_delimiter(
     return new_nodes
 
 
-def split_abritary_link(
+def split_arbitrary_link(
     old_nodes: list[TextNode],
     text_type: TextType,
-    matcher: Callable[[str], list[tuple[str, str]]],
+    matcher: Callable[[str], Iterator[re.Match]],  # yields match objects
 ) -> list[TextNode]:
-
     split_nodes = []
     for old_node in old_nodes:
-        matches = matcher(old_node.text)
-        if len(matches) == 0:
+        text = old_node.text
+        cursor = 0
+        for m in matcher(text):
+            alt, link = m.group(1), m.group(2)
+            start, end = m.span()
+            if start > cursor:
+                split_nodes.append(TextNode(text[cursor:start], old_node.text_type))
+            split_nodes.append(TextNode(alt, text_type, link))
+            cursor = end
+        if cursor == 0:
             split_nodes.append(old_node)
-        else:
-            current_text = old_node.text
-
-            for match in matches:
-                image_alt, image_link = match
-                split_text = (
-                    f"[{image_alt}]({image_link})"
-                    if text_type == TextType.LINK
-                    else f"![{image_alt}]({image_link})"
-                )
-                sections = current_text.split(split_text, 1)
-
-                if sections[0] != "":
-                    split_nodes.append(TextNode(sections[0], old_node.text_type))
-
-                split_nodes.append(TextNode(image_alt, text_type, image_link))
-
-                current_text = sections[1]
-
-            if current_text != "":
-                split_nodes.append(TextNode(current_text, old_node.text_type))
-
+        elif cursor < len(text):
+            split_nodes.append(TextNode(text[cursor:], old_node.text_type))
     return split_nodes
 
 
 def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
-    return split_abritary_link(old_nodes, TextType.IMAGE, extract_markdown_images)
+    return split_arbitrary_link(old_nodes, TextType.IMAGE, match_images)
 
 
 def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
-    return split_abritary_link(old_nodes, TextType.LINK, extract_markdown_links)
+    return split_arbitrary_link(old_nodes, TextType.LINK, match_links)
 
 
 def text_to_textnodes(text: str) -> list[TextNode]:
