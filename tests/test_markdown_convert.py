@@ -1,4 +1,5 @@
 from markdown_convert import (
+    markdown_to_blocks,
     split_nodes_delimiter,
     match_links,
     match_images,
@@ -629,6 +630,120 @@ class TestTextToTextNodes(unittest.TestCase):
     def test_unbalanced_code_raises(self):
         with self.assertRaises(ValueError):
             text_to_textnodes("dangling `code")
+
+    def test_markdown_to_blocks(self):
+        md = """
+This is **bolded** paragraph
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+
+class TestMarkdownToBlocks(unittest.TestCase):
+    def test_empty_string(self):
+        self.assertEqual(markdown_to_blocks(""), [])
+
+    def test_single_block(self):
+        self.assertEqual(
+            markdown_to_blocks("just one paragraph"),
+            ["just one paragraph"],
+        )
+
+    def test_two_simple_blocks(self):
+        self.assertEqual(
+            markdown_to_blocks("first block\n\nsecond block"),
+            ["first block", "second block"],
+        )
+
+    def test_strips_leading_and_trailing_whitespace(self):
+        self.assertEqual(
+            markdown_to_blocks("   leading and trailing   \n\n   block two   "),
+            ["leading and trailing", "block two"],
+        )
+
+    def test_excessive_blank_lines_between_blocks(self):
+        self.assertEqual(
+            markdown_to_blocks("a\n\n\n\nb"),
+            ["a", "b"],
+        )
+
+    def test_leading_and_trailing_blank_lines(self):
+        self.assertEqual(
+            markdown_to_blocks("\n\nonly block\n\n"),
+            ["only block"],
+        )
+
+    def test_preserves_internal_single_newlines(self):
+        self.assertEqual(
+            markdown_to_blocks("line one\nline two\n\nnext block"),
+            ["line one\nline two", "next block"],
+        )
+
+    def test_heading_and_paragraph(self):
+        self.assertEqual(
+            markdown_to_blocks("# Heading\n\nParagraph text"),
+            ["# Heading", "Paragraph text"],
+        )
+
+    def test_unordered_list_block(self):
+        self.assertEqual(
+            markdown_to_blocks("- item 1\n- item 2\n- item 3"),
+            ["- item 1\n- item 2\n- item 3"],
+        )
+
+    def test_ordered_list_block(self):
+        self.assertEqual(
+            markdown_to_blocks("1. first\n2. second\n3. third"),
+            ["1. first\n2. second\n3. third"],
+        )
+
+    def test_quote_block(self):
+        self.assertEqual(
+            markdown_to_blocks("> quoted line one\n> quoted line two"),
+            ["> quoted line one\n> quoted line two"],
+        )
+
+    def test_mixed_block_types(self):
+        md = "# Title\n\nParagraph with **bold**.\n\n- a\n- b\n\n> quote"
+        self.assertEqual(
+            markdown_to_blocks(md),
+            [
+                "# Title",
+                "Paragraph with **bold**.",
+                "- a\n- b",
+                "> quote",
+            ],
+        )
+
+    def test_only_newlines(self):
+        self.assertEqual(markdown_to_blocks("\n\n\n\n"), [])
+
+    def test_block_with_inline_markdown_preserved(self):
+        self.assertEqual(
+            markdown_to_blocks(
+                "This has **bold** and _italic_ and `code`\n\n![img](u) and [link](u2)"
+            ),
+            [
+                "This has **bold** and _italic_ and `code`",
+                "![img](u) and [link](u2)",
+            ],
+        )
+
+    def test_returns_list_type(self):
+        self.assertIsInstance(markdown_to_blocks("a\n\nb"), list)
 
 
 if __name__ == "__main__":
