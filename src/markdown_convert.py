@@ -5,8 +5,10 @@ from blocktype import (
     BlockType,
     BlockTypeToHTML,
     block_to_block_type,
+    determine_heading_level,
     get_block_tag,
     get_heading_level,
+    sanitize_md_text,
 )
 from htmlnode import HTMLNode
 from leafnode import LeafNode
@@ -115,80 +117,44 @@ def markdown_to_html_node(markdown: str) -> HTMLNode:
 
         parent = None
         match block_type:
-            case BlockType.PARAGRAPH:
-                # Paragrah
-                # ParentNode, tag p
-                # Child: LeafNode List for inline md
+            case BlockType.PARAGRAPH | BlockType.HEADING | BlockType.QUOTE:
                 parent = ParentNode(
-                    get_block_tag(block_type),
+                    (
+                        get_block_tag(
+                            block_type, determine_heading_level(markdown_block)
+                        )
+                        if block_type == BlockType.HEADING
+                        else get_block_tag(block_type)
+                    ),
                     [
                         text_node_to_html_node(text_node)
-                        for text_node in text_to_textnodes(markdown_block)
-                    ],
-                )
-
-            case BlockType.HEADING:
-                # Heading
-                # ParentNode, tag h
-                # Child: LeafNode List for inline md
-                parent = ParentNode(
-                    get_block_tag(block_type, get_heading_level(markdown_block)),
-                    [
-                        text_node_to_html_node(text_node)
-                        for text_node in text_to_textnodes(markdown_block)
+                        for text_node in text_to_textnodes(
+                            sanitize_md_text(markdown_block)
+                        )
                     ],
                 )
             case BlockType.CODE:
-                # Code
-                # ParentNode with pre, to keep whitespace
-                # Child: LeafNode, tag code, no inline markdown
                 parent = ParentNode(
                     "pre",
                     [
                         ParentNode(
                             get_block_tag(block_type),
-                            [
-                                LeafNode(None, markdown_block)
-                            ],  # TODO: not sure about this construct
+                            [LeafNode(None, sanitize_md_text(markdown_block))],
                         )
                     ],
                 )
-            case BlockType.QUOTE:
-                # Blockquote
-                # ParentNode, tag blockquote
-                # Child: LeafNode List for inline md
+            case BlockType.UNORDERED_LIST | BlockType.ORDERED_LIST:
                 parent = ParentNode(
                     get_block_tag(block_type),
                     [
-                        text_node_to_html_node(text_node)
-                        for text_node in text_to_textnodes(markdown_block)
+                        LeafNode(
+                            BlockTypeToHTML.LIST_ITEM.value, sanitize_md_text(line)
+                        )
+                        for line in markdown_block.split("\n")
                     ],
                 )
-            case BlockType.UNORDERED_LIST:
-                # Unordered Lists
-                # ParentNode, tag ul
-                # Child: ParentNode, tag il per member
-                # member child: LeafNode List for inline md
-                parent = ParentNode(
-                    get_block_tag(block_type),
-                    [
-                        # TODO: sanitize the strings for list items, parse into parentnode, process inline tags
-                    ],
-                    # ParentNode(
-                    #     get_block_tag(BlockType.LIST_ITEM)
-                    #     )
-                    # )
-                )
-
-        # Ordered Lists
-        # ParentNode, tag ol
-        # Child: ParentNode, tag il per member
-        # member child: LeafNode List for inline md
-
-        # TODO: text_to_textnodes for the inline md
-
-        # TODO: add in order to list html_blocks
+        html_blocks.append(parent)
 
     return ParentNode(
-        "div", None, html_blocks
+        "div", html_blocks
     )  # Must be parent node and not HTML node because to_html will crash otherwise

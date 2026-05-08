@@ -1,4 +1,6 @@
 from enum import Enum
+from re import sub
+import re
 
 
 class BlockTypeToHTML(Enum):
@@ -8,13 +10,13 @@ class BlockTypeToHTML(Enum):
     QUOTE = "blockquote"
     UNORDERED_LIST = "ul"
     ORDERED_LIST = "ol"
-    LIST_ITEM = "il"
+    LIST_ITEM = "li"
 
     @classmethod
     def _get_tag(cls, block_type: BlockType, heading_level: int | None = None) -> str:
         return (
             cls[block_type.name].value
-            if heading_level is not None
+            if heading_level is None
             else cls[block_type.name].value.format(n=heading_level)
         )
 
@@ -31,6 +33,14 @@ class BlockType(Enum):
     UNORDERED_LIST = BlockTypeToHTML.UNORDERED_LIST
     ORDERED_LIST = BlockTypeToHTML.ORDERED_LIST
     LIST_ITEM = BlockTypeToHTML.LIST_ITEM
+
+
+class BlockTypeToRegEx(Enum):
+    HEADING = r"^#{1,6} "
+    CODE = r"```(?:\w+)?\n?(.*?)\n?```"
+    QUOTE = r"^> "
+    UNORDERED_LIST = r"^- "
+    ORDERED_LIST = r"^\d.\ "
 
 
 def get_heading_level(block: str) -> int:
@@ -52,3 +62,24 @@ def block_to_block_type(block: str) -> BlockType:
         return BlockType.ORDERED_LIST
     else:
         return BlockType.PARAGRAPH
+
+
+def sanitize_md_text(line: str) -> str:
+    if re.match(BlockTypeToRegEx.HEADING.value, line):
+        return re.sub(BlockTypeToRegEx.HEADING.value, "", line)
+    elif re.match(BlockTypeToRegEx.QUOTE.value, line):
+        return re.sub(BlockTypeToRegEx.QUOTE.value, "", line, flags=re.MULTILINE)
+    elif re.match(BlockTypeToRegEx.CODE.value, line, re.DOTALL):
+        return re.sub(BlockTypeToRegEx.CODE.value, r"\1", line, flags=re.DOTALL)
+    elif re.match(BlockTypeToRegEx.UNORDERED_LIST.value, line):
+        return re.sub(BlockTypeToRegEx.UNORDERED_LIST.value, "", line)
+    elif re.match(BlockTypeToRegEx.ORDERED_LIST.value, line):
+        return re.sub(BlockTypeToRegEx.ORDERED_LIST.value, "", line)
+    else:
+        # Paragraph
+        return line
+
+
+def determine_heading_level(line: str) -> int | None:
+    m = re.match(BlockTypeToRegEx.HEADING.value, line)
+    return m.group().count("#") if m else None

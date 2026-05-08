@@ -15,11 +15,14 @@ class LeafNode(HTMLNode):
             raise ValueError("LeafNode doesn't have a html value")
 
         spaces = "  " * depth
+        value = self.value.replace("\n", "\n" + spaces)
 
         if self.tag == None:
-            return f"{spaces}{self.value}"
+            return f"{spaces}{value}"
 
-        return f"{spaces}<{self.tag}>{self.value}</{self.tag}>"
+        props = self.props_to_html()
+        open_tag = f"<{self.tag} {props}>" if props else f"<{self.tag}>"
+        return f"{spaces}{open_tag}{value}</{self.tag}>"
 
     def __repr__(self):
         to_string = f"HTMLNode({self.tag}, {self.value}"
