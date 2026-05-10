@@ -1,11 +1,9 @@
 from textnode import TextNode, TextType
+from generate import move_generated_content
 
 
 def main():
-    text_node = TextNode(
-        "This is some anchor text", TextType.LINK, "https://www.boot.dev"
-    )
-    print(text_node)
+    move_generated_content("static", "public")
 
 
 if __name__ == "__main__":
