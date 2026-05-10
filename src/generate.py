@@ -1,3 +1,5 @@
+from ntpath import isdir
+from pathlib import Path
 from shutil import rmtree, copy
 import shutil
 from markdown_convert import markdown_to_html_node
@@ -45,3 +47,15 @@ def generate_page(from_path: str, dest_path: str, template_path: str):
     dest_f.write(html_template)
     dest_f.close()
     html_template_f.close()
+
+
+def generate_pages_recursive(
+    dir_path_content: str, template_path: str, dest_dir_path: str
+):
+    for entry in os.listdir(dir_path_content):
+        src = os.path.join(dir_path_content, entry)
+        dst = os.path.join(dest_dir_path, entry)
+        if os.path.isdir(src):
+            generate_pages_recursive(src, template_path, dst)
+        else:
+            generate_page(src, dst.split(".")[0] + ".html", template_path)
