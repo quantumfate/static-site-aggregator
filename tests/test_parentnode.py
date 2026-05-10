@@ -7,7 +7,7 @@ class TestParentNode(unittest.TestCase):
     def test_to_html_with_children(self):
         child_node = LeafNode("span", "child")
         parent_node = ParentNode("div", [child_node])
-        self.assertEqual(parent_node.to_html(), "<div>\n  <span>child</span>\n</div>")
+        self.assertEqual(parent_node.to_html(), "<div><span>child</span></div>")
 
     def test_to_html_with_grandchildren(self):
         grandchild_node = LeafNode("b", "grandchild")
@@ -15,7 +15,7 @@ class TestParentNode(unittest.TestCase):
         parent_node = ParentNode("div", [child_node])
         self.assertEqual(
             parent_node.to_html(),
-            "<div>\n  <span>\n    <b>grandchild</b>\n  </span>\n</div>",
+            "<div><span><b>grandchild</b></span></div>",
         )
 
     def test_to_html_no_tag_raise(self):
@@ -53,7 +53,7 @@ class TestParentNode(unittest.TestCase):
         )
         self.assertEqual(
             node.to_html(),
-            "<div>\n  <b>Bold text</b>\n  Normal text\n  <div>\n    <p>Paragraph</p>\n    Normal text\n    <i>italic text</i>\n    Normal text\n  </div>\n  Normal text\n</div>",
+            "<div><b>Bold text</b>Normal text<div><p>Paragraph</p>Normal text<i>italic text</i>Normal text</div>Normal text</div>",
         )
 
 

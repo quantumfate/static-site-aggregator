@@ -147,8 +147,14 @@ def markdown_to_html_node(markdown: str) -> HTMLNode:
                 parent = ParentNode(
                     get_block_tag(block_type),
                     [
-                        LeafNode(
-                            BlockTypeToHTML.LIST_ITEM.value, sanitize_md_text(line)
+                        ParentNode(
+                            BlockTypeToHTML.LIST_ITEM.value,
+                            [
+                                text_node_to_html_node(text_node)
+                                for text_node in text_to_textnodes(
+                                    sanitize_md_text(line)
+                                )
+                            ],
                         )
                         for line in markdown_block.split("\n")
                     ],
