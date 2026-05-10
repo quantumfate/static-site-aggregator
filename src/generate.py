@@ -26,7 +26,7 @@ def extract_title(markdown: str) -> str:
     raise ValueError("Not a valid markdown h1")
 
 
-def generate_page(from_path: str, dest_path: str, template_path: str):
+def generate_page(from_path: str, dest_path: str, template_path: str, basepath: str):
     print(f"Generating page {from_path} to {dest_path} using {template_path}")
     md_f = open(from_path, "r")
     html_template_f = open(template_path, "r")
@@ -38,6 +38,8 @@ def generate_page(from_path: str, dest_path: str, template_path: str):
     md_title = extract_title(md_file_content)
     html_template = html_template.replace("{{ Title }}", md_title)
     html_template = html_template.replace("{{ Content }}", converted_html)
+    html_template = html_template.replace('href="/', f'href="{basepath}')
+    html_template = html_template.replace('src="/', f'src="{basepath}')
     md_f.close()
 
     working_dir_abs = os.path.abspath(dest_path)
@@ -50,12 +52,12 @@ def generate_page(from_path: str, dest_path: str, template_path: str):
 
 
 def generate_pages_recursive(
-    dir_path_content: str, template_path: str, dest_dir_path: str
+    dir_path_content: str, template_path: str, dest_dir_path: str, basepath: str
 ):
     for entry in os.listdir(dir_path_content):
         src = os.path.join(dir_path_content, entry)
         dst = os.path.join(dest_dir_path, entry)
         if os.path.isdir(src):
-            generate_pages_recursive(src, template_path, dst)
+            generate_pages_recursive(src, template_path, dst, basepath)
         else:
-            generate_page(src, dst.split(".")[0] + ".html", template_path)
+            generate_page(src, dst.split(".")[0] + ".html", template_path, basepath)
